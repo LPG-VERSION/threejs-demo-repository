@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>粒子系统</title>
+		<style>
+		body{
+		  margin:0px;
+	      padding:0px;
+		}
+		.divstyle{
+			    border:none;
+				cursor:pointer;
+				width:100%;
+		}
+		</style>
+	<script src="js/three.js"></script>
+	<script src="js/OBJLoader.js"></script>
+	</head>
+	<body onload="threeStart()">
+		<div id="canvas-frame" class="divstyle">
+			
+		</div>
+	</body>
+	<script>
+		//初始化渲染器
+		var renderer;
+		var width;
+		var height;
+		function initThree(){
+			width=document.getElementById("canvas-frame").clientWidth;
+			height=window.innerHeight;
+			renderer=new THREE.WebGLRenderer({
+				antialias:true
+			});
+			renderer.setPixelRatio(window.devicePixelRatio);
+			renderer.setSize(width,height);
+			document.getElementById("canvas-frame").appendChild(renderer.domElement);
+			renderer.setClearColor(0x000000);
+		}
+		
+		//初始化场景
+		var scene;
+		function initScene(){
+			scene=new THREE.Scene();
+		}
+		
+		//初始化的灯光
+		var light;
+		function initLight(){
+			light=new THREE.AmbientLight(0xffffff,1.0);
+			light.position.set(0,0,1800);
+			scene.add(light);
+		}
+		//初始化相机
+		var camera;
+		function initCamera(){
+			camera=new THREE.PerspectiveCamera(45,width/height,1,1e5)
+			camera.position.set(300,300,1500);
+			camera.up.x=0;
+			camera.up.y=1;
+			camera.up.z=0;
+			//camera.lookAt(scene.position);
+		}
+		
+		//初始化几何体
+		var container;
+		var femalegroup=4;
+		var malegroup=4;
+		var femalenum=10;
+		var malenum=10;
+		function initObject(){
+			container=new THREE.Object3D();
+			var loader=new THREE.OBJLoader();
+			
+			var ground=new THREE.Points(new THREE.PlaneGeometry(15000,15000,64,64),
+			new THREE.PointsMaterial({color:0xffffff*Math.random(),size:10})
+			);
+			
+			ground.rotation.x=Math.PI/2;
+			
+			container.add(ground);
+			//遍历所有子对象
+			loader.load("obj/female02.obj",function(group){
+				var position= combineBuffer(group,'position');
+				for(var i=0;i<femalegroup;i++){
+				createMesh(position,100+Math.random()*300,0,0,femalenum,2,true,container,1000);
+				}
+			},function(progress){},function(error){});
+			loader.load("obj/male02.obj",function(group){
+				var position= combineBuffer(group,'position');
+				for(var i=0;i<malegroup;i++){
+				createMesh(position,-100+Math.random()*-300,0,0,malenum,2,true,container,1000);
+				}
+			},function(progress){},function(error){});
+//			loader.load("obj/car.obj",function(group){
+//				var position= combineBuffer(group,'position');
+//				createMesh(position,400+Math.random()*200,0,-200+Math.random()*300,3,15,false,container,1000);
+//			},function(progress){},function(error){});
+			
+			scene.add(container);
+		}
+		
+		//提取模型中的所有点
+		function combineBuffer(obj,attrName){
+			var len=0;//计算数组长度
+			
+			obj.traverse(function(child){
+				if(child.isMesh){
+					var buffer=child.geometry.attributes[attrName];
+					len+=buffer.array.length;
+				}
+			});
+			
+			var combined=new Float32Array(len);
+			
+			var offest=0;//计算数组偏移
+			obj.traverse(function(child){
+				if(child.isMesh){
+					var buffer=child.geometry.attributes[attrName];
+					combined.set(buffer.array,offest);
+					offest+=buffer.array.length;
+				}
+			});
+			
+			return new THREE.BufferAttribute(combined,3);
+		}
+		
+		//创建初始化变量
+		var Data=function(){
+			    this.mesh=null;
+				this.direction=-1;
+				this.delay=100+Math.random()*500-Math.random()*100;
+				this.total=0;
+				this.speed=0.15;
+		};
+		
+		//将模型转化为粒子系统
+		var meshes=[];
+		var orginmeshes=[];
+		function createMesh(positions,x,y,z,num,scale,dynamic,container,range){
+			var geometry=new THREE.BufferGeometry();
+			geometry.setAttribute('position',positions.clone());
+			geometry.setAttribute('orginposition',positions.clone());
+			//geometry.attributes.position.setUsage( THREE.DynamicDrawUsage );
+            	var mesh=null;
+			for(var i=0;i<num;i++){
+				if(dynamic){
+					mesh=new THREE.Points(geometry,
+						new THREE.PointsMaterial({color:0xffffff*Math.random(),size:3}));
+					mesh.position.set(x+i*Math.random()*range-i*Math.random()*range,
+					0,
+					z+i*Math.random()*range-i*Math.random()*range);
+					orginmeshes.push({mesh:mesh,speed:1*Math.random()+0.5});
+				}else{
+					mesh=new THREE.Points(geometry,
+						new THREE.PointsMaterial({color:0xffffff*Math.random(),size:3}));
+					mesh.position.set(x+i*Math.random()*range-i*Math.random()*range,
+					0,
+					z+i*Math.random()*range-i*Math.random()*range);
+				}
+				container.add(mesh);
+				mesh.scale.x=mesh.scale.y=mesh.scale.z=scale;
+			}
+				if(dynamic){
+				var data=new Data();
+				data.mesh=mesh;
+			    meshes.push(data);
+			    }
+		}
+		
+		//动画
+		function animation(){
+			requestAnimationFrame(animation);
+			renderer.render(scene,camera);
+			pointsMove();
+		}
+		
+		//粒子动画
+		var clock=new THREE.Clock();
+		function pointsMove(){
+			if(meshes.length<(femalegroup+malegroup)){
+				return;
+			}
+			//获取每一祯执行的时间
+			var delta=10*clock.getDelta();
+			
+			delta = delta < 2 ? delta : 2;
+
+			container.rotation.y += - 0.02 * delta;
+		    
+		    //旋转人物
+			for(var i=0;i<orginmeshes.length;i++){
+				orginmeshes[i].mesh.rotation.y+=-0.1*orginmeshes[i].speed*delta;
+			}
+			
+			//从上向下落
+				for(var i=0;i<meshes.length;i++){
+					var position=meshes[i].mesh.geometry.attributes.position;
+					var orginposition=meshes[i].mesh.geometry.attributes.orginposition;
+					if(meshes[i].direction==-1){
+						//每个模型的延迟时间
+			         if(meshes[i].delay>0){
+				       meshes[i].delay--;
+				       //continue;
+			        }
+			        if(meshes[i].delay<=0){
+					for(var j=0;j<position.count;j++){
+						if(position.getY(j)>0){
+						var x=position.getX(j)+1.5*(0.5-Math.random())+meshes[i].speed*delta;
+						var y=position.getY(j)+10.0*(0.25-Math.random())+meshes[i].speed*delta;
+						var z=position.getZ(j)+1.5*(0.5-Math.random())+meshes[i].speed*delta;
+						position.setXYZ(j,x,y,z);
+						}else{
+						 meshes[i].total++;
+						}
+						//判断模型已经落地
+						if(meshes[i].total >= position.count){
+							meshes[i].direction=1;
+							meshes[i].delay=30+Math.random()*50-Math.random()*50;
+							meshes[i].total=0;
+						}
+					}
+					meshes[i].total=0;
+					position.needsUpdate=true;
+					}
+				}
+				
+				if(meshes[i].direction==1){
+						//每个模型的延迟时间
+			         if(meshes[i].delay>0){
+				        meshes[i].delay--;
+				      // continue;
+			        }
+			         if(meshes[i].delay<=0){
+					for(var j=0;j<position.count;j++){
+						var px=position.getX(j);
+						var py=position.getY(j);
+						var pz=position.getZ(j);
+						
+						var ix = orginposition.getX( j );
+						var iy = orginposition.getY( j );
+						var iz = orginposition.getZ( j );
+						
+						
+						var dx = Math.abs(ix-px);
+						var dy = Math.abs(iy-py);
+						var dz = Math.abs(iz-pz);
+						
+						var dis = dx + dy + dx;
+						
+						if(dis>1){
+						
+						position.setXYZ(j,px - 1.5*( px - ix ) / dx * meshes[i].speed * delta * ( 0.95 - Math.random() ),
+									py - 15.0*( py - iy ) / dy * meshes[i].speed * delta * ( 1 + Math.random() ),
+									pz - 1.5*( pz - iz ) / dz * meshes[i].speed * delta * ( 0.95 - Math.random() ));
+						}else{
+							meshes[i].total++;
+						}
+						
+						//判断所有模型已经复原
+				        if(meshes[i].total >= position.count){
+					    meshes[i].direction=-1;
+					    meshes[i].delay=30+Math.random()*50-Math.random()*50;
+			           }
+					}
+					meshes[i].total=0;
+					position.needsUpdate=true;
+					}
+				}
+					
+			}	
+		    
+		}
+		
+		//主函数
+		function threeStart(){
+			initScene();
+			initThree();
+			initCamera();
+			initLight();
+			initObject();
+			animation();
+		}
+	</script>
+</html>

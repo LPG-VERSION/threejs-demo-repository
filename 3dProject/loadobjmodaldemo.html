@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>加载obj模型</title>
+		<style>
+			body{
+		  margin:0px;
+	      padding:0px;
+		}
+		.divstyle{
+			    border:none;
+				cursor:pointer;
+				width:100%;
+			}
+		</style>
+		<script src="js/three.js"></script>
+		<script src="js/OBJLoader.js"></script>
+		<script src="js/OrbitControls.js"></script>
+	</head>
+	<body onload="threeStart();">
+		<div id="canvas-frame" class="divstyle">
+		</div>
+	</body>
+	<script>
+		//初始化渲染器
+		var renderer;
+		function initThree(){
+			width=document.getElementById("canvas-frame").clientWidth;
+			height=window.innerHeight;
+			renderer=new THREE.WebGLRenderer({
+				antialias:false
+			});
+			renderer.setSize(width,height);
+			document.getElementById("canvas-frame").appendChild(renderer.domElement);
+			renderer.setClearColor(0x000000);
+		}
+		
+		//初始化场景
+		var scene;
+		function initScene(){
+			scene=new THREE.Scene();
+		}
+		
+		//初始化灯光
+		function initLight(){
+			light=new THREE.AmbientLight(0xffffff,1.0);
+			light.position.set(1000,1000,1000);
+			scene.add(light);
+		}
+		
+		//初始化相机
+		var camera;
+		var cparam;
+		function initCamera(){
+			var CameraObj=function(){
+				this.x=0;
+				this.y=15;
+				this.z=25;
+			}
+			cparam=new CameraObj();
+			
+			camera=new THREE.PerspectiveCamera(45,width/height,0.01,1e5);
+			camera.position.set(cparam.x,cparam.y,cparam.z);
+			camera.up.x=0;
+			camera.up.y=1;
+			camera.up.z=0;
+		}
+		
+		//初始化几何体
+		var obj;
+		function initObject(){
+			var objLoader=new THREE.OBJLoader();
+			var texture=new THREE.Texture();
+			var imageLoader=new THREE.ImageLoader();
+			imageLoader.load("img/background.jpg",
+				function(img){
+					texture.image=img;
+					texture.needsUpdate=true;
+				},
+				function(progress){
+				
+			    },function(err){
+				
+			    }
+				);
+			var material=new THREE.MeshLambertMaterial({
+				color:0xffffff,map:texture,side:THREE.DoubleSide
+			});
+			objLoader.load("obj/mox.obj",function(group){
+				obj=new THREE.Mesh(group.children[0].geometry,material);
+				obj.rotation.x=2;
+				scene.add(obj);
+			},function(progress){
+				
+			},function(err){
+				
+			});
+		}
+		 //初始化事件
+		 var controls;
+		function initEvent(){
+		controls=new THREE.OrbitControls(camera,renderer.domElement);
+		controls.addEventListener('drag',renderer);
+		window.addEventListener( 'resize', onWindowResize, false );
+		}
+		
+	   function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize( window.innerWidth, window.innerHeight );
+        }
+	    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize( window.innerWidth, window.innerHeight );
+        }
+		
+		//动画
+		function animation(){
+			requestAnimationFrame(animation);
+			renderer.render(scene,camera);
+		}
+		
+		//主函数
+		function threeStart(){
+			initScene();
+			initThree();
+			initCamera();
+			initLight();
+			initObject();
+			initEvent();
+			animation();
+		}
+	</script>
+</html>

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>鼠标拾取物体</title>
+	</head>
+	<style>
+		body{
+		  margin:0px;
+	      padding:0px;
+		}
+		.divstyle{
+			    border:none;
+				cursor:pointer;
+				width:100%;
+		}
+	</style>
+	<script src="js/three.js"></script>
+	<script src="js/OrbitControls.js"></script>
+	<body onload="threeStart()">
+		<div id="canvas-frame" class="divstyle">
+		</div>
+	</body>
+	<script>
+		//初始化渲染器
+		var renderer;
+		function initThree(){
+			width=document.getElementById("canvas-frame").clientWidth;
+			height=window.innerHeight;
+			renderer=new THREE.WebGLRenderer({
+				antialias:false
+			});
+			renderer.setSize(width,height);
+			renderer.setPixelRatio(width/height);
+			document.getElementById("canvas-frame").appendChild(renderer.domElement);
+			renderer.setClearColor(0xffffff);
+		}
+		
+		//初始化场景
+		var scene;
+		function initScene(){
+			scene=new THREE.Scene();
+		}
+		
+		//初始化灯光
+		var light;
+		function initLight(){
+			light=new THREE.DirectionalLight(0xffffff,1.0);
+			light.position.set(100,100,100).normalize();
+			scene.add(light);
+		}
+		
+		//初始化相机
+		var camera;
+		function initCamera(){
+			camera=new THREE.PerspectiveCamera(45,width/height,1,1e5);
+			camera.position.set(0,0,100);
+			camera.up.x=0;
+			camera.up.y=1;
+			camera.up.z=0;
+		}
+		
+		//初始化几何体
+		var object;
+		var boxNum=2000;
+		var randomRange=800;
+		function initObject(){
+			var geometry=new THREE.BoxBufferGeometry(20,20,20);
+			for(var i=0;i<boxNum;i++){
+				var material=new THREE.MeshLambertMaterial({
+					color:Math.random()*0xffffff
+				});
+                object=new THREE.Mesh(geometry,material);
+                object.position.set(Math.random()*randomRange-(randomRange/2),
+                Math.random()*randomRange-(randomRange/2),
+                Math.random()*randomRange-(randomRange/2)
+                );
+                object.rotation.set(
+                	Math.random()*2*Math.PI,
+                	Math.random()*2*Math.PI,
+                	Math.random()*2*Math.PI
+                );
+                object.scale.set(Math.random()+0.5,Math.random()+0.5,Math.random()+0.5);
+                scene.add(object);
+			}
+		}
+		
+		//初始化控制器
+		var controls;
+		function initControls(){
+			controls=new THREE.OrbitControls(camera,renderer.domElement);
+			controls.minDistance=50;
+			controls.maxDistance=1000;
+			
+			//阻尼开启，赋予对象重力感
+			controls.enableDamping=true;
+			//禁用镜头平移
+			controls.enablePan=false;
+			//禁用镜头缩放
+			controls.enableZoom=false;
+		}
+		
+		//初始化事件
+		function initEvent(){
+			window.addEventListener('mousemove',onMouseMove,false);
+			window.addEventListener( 'resize', onWindowResize, false );
+		}
+		
+		//鼠标事件
+		function onMouseMove(event){
+			 //  取消默认动作
+            event.preventDefault();
+			mouse.x=2*(event.clientX/window.innerWidth)-1;
+			mouse.y=-2*(event.clientY/window.innerHeight)+1;
+		}
+		
+		function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize( window.innerWidth, window.innerHeight );
+        }
+		//初始化光线投射
+		var raycaster;
+		var mouse;
+		var param;
+		function initRaycaster(){
+			raycaster=new THREE.Raycaster();
+			mouse=new THREE.Vector2();
+			var InterSpects=function(){
+				this.currentColor=0;
+				this.obj=null;
+			}
+			param=new InterSpects();
+	}
+	
+	//动画
+	function animation(){
+		requestAnimationFrame(animation);
+		renderer.render(scene,camera);
+		controls.update();
+		choose();
+	}
+	
+	//选中事件
+	function choose(){
+		//通过相机和鼠标位置更新射线
+			raycaster.setFromCamera(mouse,camera);
+			//计算物体和射线焦点 返回一个数组
+			var interspects=raycaster.intersectObjects(scene.children);
+			//如果有和相机射线相交的物体
+			if(interspects.length>0){
+			//如果相交对象变更
+			if(param.obj!=interspects[0].object){
+				if(param.obj){
+					//材质发射的属性
+					param.obj.material.emissive.setHex(param.currentColor);
+			      }
+			  //纪录当前对象
+			  param.obj=interspects[0].object;
+			  //记录当前颜色
+			  param.currentColor=param.obj.material.emissive.getHex();
+			  //将颜色设置为红色
+			  param.obj.material.emissive.setHex(0xff0000);
+		}
+       }else{
+       	if(param.obj){
+       		param.obj.material.emissive.setColor(param.currentColor);
+       	}
+       	param.obj=null;
+       }
+	}
+	//主函数
+	function threeStart(){
+		initScene();
+		initThree();
+		initCamera();
+		initLight();
+		initObject();
+		initEvent();
+		initControls();
+		initRaycaster();
+		animation();
+	}
+	</script>
+</html>

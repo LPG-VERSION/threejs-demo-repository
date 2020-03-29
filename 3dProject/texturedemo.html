@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>纹理</title>
+		<style>
+			.divstyle{
+				border:none;
+				cursor:pointer;
+				width:100%;
+				height:800px;
+				margin-top:5%;
+			}
+		</style>
+		<script src="js/three.js"></script>
+		<script src="js/dat.gui.js"></script>
+	</head>
+	<body onload="threeStart();">
+	<div id="canvas-frame" class="divstyle">
+	</div>
+	</body>
+    <script>
+	//初始化渲染器
+	var renderer;
+	function initThree(){
+		width=document.getElementById("canvas-frame").clientWidth;
+		height=document.getElementById("canvas-frame").clientHeight;
+		renderer=new THREE.WebGLRenderer({
+			antialias:true
+		});
+		renderer.setSize(width,height);
+		document.getElementById("canvas-frame").appendChild(renderer.domElement);
+		renderer.setClearColor(0xFFFFFF,1.0)
+	}
+	
+	//初始化场景
+    var scene;
+    function initScene(){
+    	scene=new THREE.Scene();
+    }
+    
+    //初始化GUI
+    var param;
+    function initGUI(){
+    	var paramObj=function(){
+    		this.repeat=1;
+    		this.wrap=1000;
+    	}
+    	param=new paramObj();
+    	var gui=new dat.GUI();
+    	gui.add(param,"repeat",1,5,"纹理重复");
+    	gui.add(param,"wrap",1000,1002,"纹理回环方式").step(1);
+    }
+    
+    //初始化相机
+    var camera;
+    function initCamera(){
+    	camera=new THREE.PerspectiveCamera(45,width/height,1,10000);
+    	camera.position.set(0,0,600);
+    	camera.up.x=0;
+    	camera.up.y=1;
+    	camera.up.z=0;
+    }
+    
+    //初始化几何体
+    var canvas;
+    var texture;
+    function initObject(){
+    	var geometry=new THREE.PlaneGeometry(500,300,1,1);
+    	geometry.vertices[0].uv=new THREE.Vector2(0,0);
+    	geometry.vertices[1].uv=new THREE.Vector2(1,0);
+    	geometry.vertices[2].uv=new THREE.Vector2(1,1);
+    	geometry.vertices[3].uv=new THREE.Vector2(0,1);
+    	
+    	var loader=new THREE.TextureLoader();
+    	
+    	texture=loader.load("img/background.jpg",function(texture){
+    		var material=new THREE.MeshBasicMaterial({
+    			map:texture
+    		});
+    		canvas=new THREE.Mesh(geometry,material);
+    		scene.add(canvas);
+    	},
+    	//进度函数
+    	function(progress){
+    		console.log(progress.loaded*100 / progress.total+"%loaded");
+    	},
+    	//错误函数
+    	function(err){
+    		console.log("some errors happend");
+    	});
+    }
+    
+    //动画
+    function animation(){
+    	requestAnimationFrame(animation);
+    	changeTextureAttribute();
+    	renderer.render(scene,camera);
+    }
+    
+    //改变纹理属性的方法
+    function changeTextureAttribute(){
+    	if(texture!=null){
+    		texture.repeat.x=texture.repeat.y=param.repeat;
+    		texture.wrapS=texture.wrapT=param.wrap;
+    		texture.offset.x+=0.001;
+    		texture.needsUpdate=true;
+    	}
+    }
+    
+    //主函数
+    function threeStart(){
+    	initThree();
+    	initGUI();
+    	initScene();
+    	initCamera();
+    	initObject();
+    	animation();
+    }
+	</script>
+</html>

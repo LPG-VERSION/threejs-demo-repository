@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>环境灯光案例</title>
+		<style>
+			.divstyle{
+				border:none;
+				cursor:pointer;
+				width:100%;
+			}
+		</style>
+		<script src="js/three.js"></script>
+		<script src="js/dat.gui.js"></script>
+	</head>
+	<body onload="threeStart()">
+		<div id="canvas-frame" class="divstyle">
+		</div>
+	</body>
+	<script>
+		//初始化渲染器
+		var renderer;
+		function initThree(){
+			width=document.getElementById("canvas-frame").clientWidth;
+			height=window.innerHeight;
+			renderer=new THREE.WebGLRenderer({
+				antialias:true
+			});
+			renderer.setSize(width,height);
+			document.getElementById("canvas-frame").appendChild(renderer.domElement);
+			renderer.setClearColor(0xFFFFFF,1.0);
+		}
+		
+		//初始化相机
+		var camera;
+		function initCamera(){
+			camera=new THREE.PerspectiveCamera(45,width/height,1,10000);
+			camera.position.set(600,0,600);
+			camera.up.x=0;
+			camera.up.y=1;
+			camera.up.z=0;
+		}
+		
+		//初始化控制ui
+		var gui
+		var param;
+		function initGui(){
+			var paramObj=function(){
+				this.x=0;
+				this.y=0;
+				this.z=0;
+			}
+			param=new paramObj();
+			
+			gui=new dat.GUI();
+			gui.add(param,"x",-10000,10000,"环境光的X位置");
+			gui.add(param,"y",-10000,10000,"环境光的Y位置");
+			gui.add(param,"z",-10000,10000,"环境光的Z位置");
+		}
+		//初始化场景
+		var scene;
+		function initScene(){
+			scene=new THREE.Scene();
+		}
+		
+		//初始化灯光
+		var light;
+		function initLight(){
+			light=new THREE.AmbientLight(0x66FFFF);
+			light.position.set(param.x,param.y,param.z);
+			scene.add(light);
+		}
+		
+		//初始化几何体
+		var cube;
+		function initObject(){
+			var geometry=new THREE.CubeGeometry(200, 100, 50, 4,4);
+			var material=new THREE.MeshLambertMaterial({color:0xFF0000});
+			cube=new THREE.Mesh(geometry,material);
+			cube.position.set(0,0,0);
+			camera.lookAt(cube.position);
+			scene.add(cube);
+		}
+		
+		//动画
+		function animation(){
+			requestAnimationFrame(animation);
+			renderer.clear();
+			light.position.set(param.x,param.y,param.z);
+			renderer.render(scene,camera);
+		}
+		
+		//主函数
+		function threeStart(){
+			initThree();
+			initCamera();
+			initScene();
+			initGui();
+			initLight();
+			initObject();
+			animation();
+		}
+    </script>
+</html> 

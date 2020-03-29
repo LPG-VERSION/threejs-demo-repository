@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>框架</title>
+		<style>
+			.divstyle{
+				border:none;
+				cursor:pointer;
+				width:100%;
+			}
+		</style>
+		 <script src="js/Stats.js"></script>
+	     <script src="js/three.js"></script>
+	</head>
+	<body  onload="threeStart();">
+		<div id="canvas-frame" class="divstyle">
+			
+		</div>
+	</body>
+	<script>
+		//初始化渲染器
+		var renderer;
+		function initThree(){
+			width=document.getElementById("canvas-frame").clientWidth;
+			height=window.innerHeight;
+			renderer=new THREE.WebGLRenderer({
+				antialias:true
+			});
+			renderer.setSize(width,height);
+			document.getElementById("canvas-frame").appendChild(renderer.domElement);
+			renderer.setClearColor(0xFFFFFF,1.0);
+		}
+		//初始化相机
+		var camera;
+		function initCamera(){
+			/*
+			 * fov 视角
+			 * aspect 纵横比
+			 * near 近平面
+			 * far 远平面
+			 */
+			camera=new THREE.PerspectiveCamera(75,width/height,1,10000);
+			camera.position.x=0;
+			camera.position.y=0;
+			camera.position.z=5;
+			
+		}
+		//初始化场景
+		var scene;
+		function initScene(){
+			scene=new THREE.Scene();
+		}
+		//初始化灯光
+		function initLight(){
+			
+		}
+		//初始化几何体
+		var cube;
+		function initObject(){
+			var geometry=new THREE.CubeGeometry(2,2,2);
+			var material=new THREE.MeshBasicMaterial({color:0x00ff00});
+			cube=new THREE.Mesh(geometry,material);
+			scene.add(cube);
+		}
+		//初始化性能检测器
+		var stats;
+		function initMonitor(){
+			stats=new Stats();
+			stats.setMode(0);
+			stats.domElement.style.position = 'absolute';
+            stats.domElement.style.left = '0px';
+            stats.domElement.style.top = '0px';
+			document.getElementById("canvas-frame").appendChild(stats.domElement);
+		}
+		//动画
+		function render(){
+			stats.begin();
+			camera.position.x+=0.01;
+			//cube.rotation.x+=0.01;
+			//cube.rotation.y+=0.01;
+			renderer.render(scene,camera);
+			stats.end();
+			requestAnimationFrame(render);
+		}
+		
+		function threeStart(){
+			initMonitor();
+			initThree();
+			initCamera();
+			initScene();
+			initLight();
+			initObject();
+			render();
+		}
+	</script>
+</html>
+
